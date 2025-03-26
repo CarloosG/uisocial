@@ -55,7 +55,9 @@ void login() async {
           ),
           TextField(
             controller: _passwordController,
-            decoration:  const InputDecoration(labelText: "Password") ,
+            decoration:  const InputDecoration(labelText: "Contraseña") ,
+            obscureText: true,
+
 
           ),
           const SizedBox(height: 12),
