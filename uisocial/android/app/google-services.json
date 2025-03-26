@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "830055153726",
+    "project_id": "uisocial",
+    "storage_bucket": "uisocial.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830055153726:android:662234eb6066dd6f6d516f",
+        "android_client_info": {
+          "package_name": "com.example.uisocial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAwTucak-tn-Uvynr8rm685qYv4_po26w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
