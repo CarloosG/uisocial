@@ -26,7 +26,24 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(onPressed: logout, icon: const Icon(Icons.logout))
         ],
         ),
-      body:  Center(child: Text(currentEmail.toString()),),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/stickman.png',
+              width: 550, // Ajusta el tamaño según necesites
+              height: 550,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              currentEmail.toString(),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ],
+        ),
+      ),
     ) ;
   }
 }

@@ -67,16 +67,8 @@ class _LoginPageState extends State<LoginPage>
         children: [
           Container(
             width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color.fromRGBO(122, 234, 170, 1), Colors.white],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: [0.6, 1.0],
-              ),
-            ),
+            color: Color.fromRGBO(122, 234, 170, 1),
           ),
-
           Center(
             child: SingleChildScrollView(
               child: Column(
@@ -93,6 +85,7 @@ class _LoginPageState extends State<LoginPage>
                           fontSize: 40,
                           fontWeight: FontWeight.bold,
                           color: Color.fromARGB(255, 63, 130, 65),
+                          shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                         ),
                       ),
                       Text(
@@ -101,6 +94,7 @@ class _LoginPageState extends State<LoginPage>
                           fontSize: 40,
                           fontWeight: FontWeight.bold,
                           color: Color.fromARGB(255, 255, 255, 255),
+                          shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                         ),
                       ),
                     ],
@@ -114,6 +108,8 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Email",
                             border: OutlineInputBorder(),
+                            filled: true, // Habilita el color de fondo
+                            fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                         ),
                         const SizedBox(height: 15),
@@ -122,6 +118,8 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Password",
                             border: OutlineInputBorder(),
+                            filled: true, // Habilita el color de fondo
+                            fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                           obscureText: true,
                         ),
@@ -194,7 +192,14 @@ class _LoginPageState extends State<LoginPage>
                     child: Container(
                       width: double.infinity,
                       height: 150,
-                      color: const Color.fromARGB(138, 255, 255, 255),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color.fromARGB(66, 255, 255, 255), Color.fromARGB(255, 255, 255, 255)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: [0.3, 1.0],
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -220,7 +225,8 @@ class WaveClipper extends CustomClipper<Path> {
     path.moveTo(0, size.height * 0.4);
 
     for (double i = 0; i <= size.width; i += 1) {
-      double y = size.height * 0.4 +
+      double y =
+          size.height * 0.4 +
           amplitude * sin((i / waveLength) * 2 * pi + animationValue * 2 * pi);
       path.lineTo(i, y);
     }
