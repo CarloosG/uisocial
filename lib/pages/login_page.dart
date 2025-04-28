@@ -1,3 +1,4 @@
+// Importaciones (no cambian)
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:uisocial/auth/auth_service.dart';
@@ -11,24 +12,22 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final authService = AuthService();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   late AnimationController _waveController;
+  bool _isHovered = false; // Para animación del texto
 
   @override
   void initState() {
     super.initState();
-
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
-    _waveController.forward(); // Inicia la animación una vez
+    _waveController.forward(); 
   }
 
   @override
@@ -51,14 +50,12 @@ class _LoginPageState extends State<LoginPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
     }
   }
-
-  bool _isHovered = false; // Variable de estado para el efecto
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +105,7 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Email",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                         ),
@@ -118,7 +115,7 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Password",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                           obscureText: true,
@@ -143,32 +140,47 @@ class _LoginPageState extends State<LoginPage>
                         ),
                         const SizedBox(height: 15),
                         GestureDetector(
-                          onTap:
-                              () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
-                                ),
-                              ),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          ),
                           child: MouseRegion(
                             onEnter: (_) => setState(() => _isHovered = true),
                             onExit: (_) => setState(() => _isHovered = false),
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
-                                color:
-                                    _isHovered
-                                        ? Colors.blueAccent
-                                        : Colors.blue, // Cambio de color
-                                fontWeight:
-                                    _isHovered
-                                        ? FontWeight.bold
-                                        : FontWeight.normal, // Cambio de grosor
+                                color: _isHovered ? Colors.blueAccent : Colors.blue,
+                                fontWeight: _isHovered ? FontWeight.bold : FontWeight.normal,
                               ),
                               child: const Text(
-                                "No tienes una cuenta? Regístrate",
+                                "¿No tienes una cuenta? Regístrate",
                               ),
                             ),
+                          ),
+                        ),
+
+                        // --- BOTÓN TEMPORAL ---
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/create-event');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            'Ir a Crear Evento (Prueba)',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
                       ],
@@ -210,34 +222,4 @@ class _LoginPageState extends State<LoginPage>
       ),
     );
   }
-}
-
-class WaveClipper extends CustomClipper<Path> {
-  final double animationValue;
-  WaveClipper(this.animationValue);
-
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    double amplitude = 40;
-    double waveLength = size.width * 1.5;
-
-    path.moveTo(0, size.height * 0.4);
-
-    for (double i = 0; i <= size.width; i += 1) {
-      double y =
-          size.height * 0.4 +
-          amplitude * sin((i / waveLength) * 2 * pi + animationValue * 2 * pi);
-      path.lineTo(i, y);
-    }
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(WaveClipper oldClipper) => true;
 }

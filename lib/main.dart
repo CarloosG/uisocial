@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uisocial/pages/login_page.dart'; 
+import 'package:uisocial/pages/login_page.dart';
+import 'package:uisocial/pages/create_event_page.dart'; // Asegúrate que este import esté también
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,8 +18,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, 
-      home: const LoginPage(), 
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/', // <- inicializamos la navegación con rutas
+      routes: {
+        '/': (context) => const LoginPage(),            // login como ruta inicial
+        '/create-event': (context) => CreateEventPage(), // nueva página para crear eventos
+      },
     );
   }
 }
