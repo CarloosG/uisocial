@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uisocial/pages/login_page.dart'; 
+import 'package:uisocial/pages/eventos_page.dart';
+import 'package:uisocial/pages/home_page.dart';
+import 'package:uisocial/pages/login_page.dart';
+import 'package:uisocial/pages/notificacions_page.dart';
+import 'package:uisocial/pages/profile_page.dart';
+import 'package:uisocial/pages/search_page.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +25,23 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, 
       home: const LoginPage(), 
+            routes: {
+        '/home': (context) => const HomePage(),
+        '/search': (context) => const SearchPage(),
+        '/eventos': (context) => const EventosPage(),
+        '/notifications': (context) => const NotificationsPage(),
+        '/profile': (context) => const ProfilePage(),
+      },
+      localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: const [
+      Locale('es', ''),
+      Locale('en', ''),
+    ],
+    locale: const Locale('es', ''),
     );
   }
 }

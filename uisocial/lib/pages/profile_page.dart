@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uisocial/auth/auth_gate.dart';
 import 'package:uisocial/auth/auth_service.dart';
+import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -10,40 +11,41 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final authservice = AuthService();
-  void logout() async{
-    await authservice.signOut();
+  int _currentIndex = 4; // 
+  
+  void _navigateToPage(int index) {
+    if (index == _currentIndex) return;
+    
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/ProfilePage');
+      case 2:
+        Navigator.pushReplacementNamed(context, '/eventos');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/notifications');
+        break;
+      case 4:
+        break;
+    }
   }
   
   @override
   Widget build(BuildContext context) {
-    
-    final currentEmail = authservice.getCurrentUserEmaiil();
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Perfil"),
-        actions: [
-          IconButton(onPressed: logout, icon: const Icon(Icons.logout))
-        ],
-        ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/stickman.png',
-              width: 550, // Ajusta el tamaño según necesites
-              height: 550,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              currentEmail.toString(),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
-        ),
+        title: const Text("Inicio"),
       ),
-    ) ;
+      body: const Center(
+        child: Text("Contenido de la página de ProfilePage"),
+      ),
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: _navigateToPage,
+      ),
+    );
   }
 }
