@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/pages/profile_page.dart';
 import 'package:uisocial/pages/register_page.dart';
+import 'package:uisocial/pages/home_page.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -46,7 +48,7 @@ class _LoginPageState extends State<LoginPage>
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ProfilePage()),
+          MaterialPageRoute(builder: (context) => const HomePage()),
         );
       }
     } catch (e) {
