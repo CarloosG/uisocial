@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uisocial/pages/eventos_page.dart';
 import 'package:uisocial/pages/home_page.dart';
@@ -31,6 +32,16 @@ class MyApp extends StatelessWidget {
         '/notifications': (context) => const NotificationsPage(),
         '/profile': (context) => const ProfilePage(),
       },
+      localizationsDelegates: const [
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: const [
+      Locale('es', ''),
+      Locale('en', ''),
+    ],
+    locale: const Locale('es', ''),
     );
   }
 }

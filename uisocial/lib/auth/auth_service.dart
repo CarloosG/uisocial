@@ -26,5 +26,10 @@ class AuthService {
     return user?.email;
   }
 
+  String? getCurrentUserId() {
+    final user = Supabase.instance.client.auth.currentUser;
+    return user?.id;
+  }
+
   
 }
