@@ -7,20 +7,43 @@ import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 import 'package:uisocial/auth/auth_service.dart';
 
 class EventosPage extends StatefulWidget {
-  const EventosPage({Key? key}) : super(key: key);
+  const EventosPage({super.key});
 
   @override
   State<EventosPage> createState() => _EventosPageState();
 }
 
 class _EventosPageState extends State<EventosPage> {
-  final int _currentIndex = 2; // Índice para Eventos (cambiado de la pestaña "Publicar")
+  final int _currentIndex =
+      2; // Índice para Eventos (cambiado de la pestaña "Publicar")
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _typeController = TextEditingController();
-  final _locationController = TextEditingController();
+  final List<String> _eventTypes = [
+    'Académico',
+    'Cultural',
+    'Deportivo',
+    'Recreativo',
+    'Voluntariado',
+    'Charla',
+    'Taller',
+    'Feria',
+    'Concierto',
+    'Proyección de Cine',
+    'Competencia',
+  ];
+  final TextEditingController _typeController = TextEditingController();
+  final List<Map<String, String>> _availableLocations = [
+    {'name': 'Burladero', 'coords': '7.139912, -73.120300'},
+    {'name': 'Biblioteca UIS', 'coords': '7.140968, -73.120826'},
+    {'name': 'Cancha de Fútbol Principal', 'coords': '7.139591, -73.118614'},
+    {'name': 'Gimnasio Principal', 'coords': '7.139657, -73.117716'},
+    {'name': 'Auditorio Luis A.', 'coords': '7.139856, -73.119887'},
+    {'name': 'Piscina UIS', 'coords': '7.141962, -73.121980'},
+    {'name': 'Cafetería CT', 'coords': '7.140353, -73.121930'},
+  ];
+  String? _selectedCoords;
   final _participantsController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now();
   final authService = AuthService();
   late final EventService _eventService;
@@ -51,9 +74,9 @@ class _EventosPageState extends State<EventosPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar eventos: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al cargar eventos: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -63,7 +86,7 @@ class _EventosPageState extends State<EventosPage> {
 
   void _navigateToPage(int index) {
     if (index == _currentIndex) return;
-    
+
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/home');
@@ -90,7 +113,7 @@ class _EventosPageState extends State<EventosPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -101,7 +124,7 @@ class _EventosPageState extends State<EventosPage> {
   void _clearForm() {
     _nameController.clear();
     _typeController.clear();
-    _locationController.clear();
+    _selectedCoords = null;
     _participantsController.clear();
     setState(() {
       _selectedDate = DateTime.now();
@@ -113,7 +136,7 @@ class _EventosPageState extends State<EventosPage> {
   void _editEvent(Event event) {
     _nameController.text = event.name;
     _typeController.text = event.type;
-    _locationController.text = event.location;
+    _selectedCoords = event.location;
     _participantsController.text = event.participants.toString();
     setState(() {
       _selectedDate = event.date;
@@ -131,7 +154,7 @@ class _EventosPageState extends State<EventosPage> {
       try {
         final userId = authService.getCurrentUserId();
         final email = authService.getCurrentUserEmaiil();
-        
+
         if (userId == null) {
           throw Exception('Usuario no autenticado');
         }
@@ -141,7 +164,7 @@ class _EventosPageState extends State<EventosPage> {
           name: _nameController.text,
           type: _typeController.text,
           date: _selectedDate,
-          location: _locationController.text,
+          location: _selectedCoords!,
           participants: int.parse(_participantsController.text),
           userId: userId,
           createdBy: email,
@@ -163,9 +186,9 @@ class _EventosPageState extends State<EventosPage> {
         _clearForm();
         await _loadUserEvents();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar evento: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al guardar evento: $e')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -182,9 +205,9 @@ class _EventosPageState extends State<EventosPage> {
       );
       await _loadUserEvents();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar evento: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al eliminar evento: $e')));
     }
   }
 
@@ -235,19 +258,62 @@ class _EventosPageState extends State<EventosPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _typeController,
+                      DropdownButtonFormField<String>(
+                        value:
+                            _typeController.text.isNotEmpty
+                                ? _typeController.text
+                                : null,
                         decoration: const InputDecoration(
                           labelText: 'Tipo de evento',
                           border: OutlineInputBorder(),
                         ),
+                        items:
+                            _eventTypes.map((String type) {
+                              return DropdownMenuItem<String>(
+                                value: type,
+                                child: Text(type),
+                              );
+                            }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _typeController.text = newValue!;
+                          });
+                        },
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Por favor ingresa un tipo';
+                            return 'Por favor selecciona un tipo de evento';
                           }
                           return null;
                         },
                       ),
+
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedCoords,
+                        decoration: const InputDecoration(
+                          labelText: 'Lugar del evento',
+                          border: OutlineInputBorder(),
+                        ),
+                        items:
+                            _availableLocations.map((location) {
+                              return DropdownMenuItem<String>(
+                                value: location['coords'],
+                                child: Text(location['name']!),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCoords = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor selecciona una ubicación';
+                          }
+                          return null;
+                        },
+                      ),
+
                       const SizedBox(height: 16),
                       InkWell(
                         onTap: () => _selectDate(context),
@@ -259,26 +325,15 @@ class _EventosPageState extends State<EventosPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
+                              Text(
+                                DateFormat('dd/MM/yyyy').format(_selectedDate),
+                              ),
                               const Icon(Icons.calendar_today),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _locationController,
-                        decoration: const InputDecoration(
-                          labelText: 'Lugar del evento',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor ingresa un lugar';
-                          }
-                          return null;
-                        },
-                      ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _participantsController,
@@ -305,13 +360,20 @@ class _EventosPageState extends State<EventosPage> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(_isEditing ? 'Actualizar Evento' : 'Crear Evento'),
+                          child:
+                              _isLoading
+                                  ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : Text(
+                                    _isEditing
+                                        ? 'Actualizar Evento'
+                                        : 'Crear Evento',
+                                  ),
                         ),
                       ),
                     ],
@@ -320,74 +382,76 @@ class _EventosPageState extends State<EventosPage> {
               ),
             ),
             const SizedBox(height: 32),
-            Text(
-              'Mis Eventos',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Mis Eventos', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             _isLoading && _userEvents.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : _userEvents.isEmpty
-                    ? const Center(
-                        child: Text('No tienes eventos creados'),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _userEvents.length,
-                        itemBuilder: (context, index) {
-                          final event = _userEvents[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: ListTile(
-                              title: Text(event.name),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text('Tipo: ${event.type}'),
-                                  Text('Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}'),
-                                  Text('Lugar: ${event.location}'),
-                                  Text('Participantes: ${event.participants}'),
-                                ],
-                              ),
-                              isThreeLine: true,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editEvent(event),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed: () => showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Eliminar evento'),
-                                        content: const Text('¿Estás seguro de que quieres eliminar este evento?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              _deleteEvent(event.id! as String);
-                                            },
-                                            child: const Text('Eliminar'),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                ? const Center(child: Text('No tienes eventos creados'))
+                : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _userEvents.length,
+                  itemBuilder: (context, index) {
+                    final event = _userEvents[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: ListTile(
+                        title: Text(event.name),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text('Tipo: ${event.type}'),
+                            Text(
+                              'Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}',
                             ),
-                          );
-                        },
+                            Text('Lugar: ${event.location}'),
+                            Text('Participantes: ${event.participants}'),
+                          ],
+                        ),
+                        isThreeLine: true,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _editEvent(event),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed:
+                                  () => showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => AlertDialog(
+                                          title: const Text('Eliminar evento'),
+                                          content: const Text(
+                                            '¿Estás seguro de que quieres eliminar este evento?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed:
+                                                  () => Navigator.pop(context),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                _deleteEvent(event.id!);
+                                              },
+                                              child: const Text('Eliminar'),
+                                            ),
+                                          ],
+                                        ),
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
+                    );
+                  },
+                ),
           ],
         ),
       ),
@@ -402,7 +466,7 @@ class _EventosPageState extends State<EventosPage> {
   void dispose() {
     _nameController.dispose();
     _typeController.dispose();
-    _locationController.dispose();
+    _selectedCoords = null;
     _participantsController.dispose();
     super.dispose();
   }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uisocial/auth/auth_gate.dart';
-import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -11,7 +9,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _currentIndex = 4; // 
+  final int _currentIndex = 4; // 
   
   void _navigateToPage(int index) {
     if (index == _currentIndex) return;

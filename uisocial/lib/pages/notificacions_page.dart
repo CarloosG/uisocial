@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uisocial/auth/auth_gate.dart';
-import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -11,7 +9,7 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  int _currentIndex = 3; // 
+  final int _currentIndex = 3; // 
   
   void _navigateToPage(int index) {
     if (index == _currentIndex) return;

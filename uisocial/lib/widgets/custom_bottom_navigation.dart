@@ -5,10 +5,10 @@ class CustomBottomNavigation extends StatelessWidget {
   final Function(int) onTap;
 
   const CustomBottomNavigation({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class CustomBottomNavigation extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.blue,
+      selectedItemColor: const Color.fromARGB(255, 105, 215, 140),
       unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(
