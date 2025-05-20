@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatDetailPage extends StatefulWidget {
-  const ChatDetailPage({Key? key}) : super(key: key);
+  const ChatDetailPage({super.key});
 
   @override
   State<ChatDetailPage> createState() => _ChatDetailPageState();
