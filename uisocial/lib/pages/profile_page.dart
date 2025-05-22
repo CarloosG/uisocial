@@ -91,10 +91,13 @@ class _ProfilePageState extends State<ProfilePage> {
       final userId = _supabase.auth.currentUser!.id;
       
       // Obtener amigos (ajusta esta consulta según tu estructura de datos)
-      final response = await _supabase
-          .from('friends')
-          .select('friend_id, profiles!inner(username, avatar_url)')
-          .eq('user_id', userId);
+    final response = await _supabase
+        .from('friends')
+        .select('''
+          friend_id,
+          friend_profile:profiles!friends_friend_id_fkey(username, avatar_url)
+        ''')
+        .eq('user_id', userId);
       
       setState(() {
         _friends = response;
