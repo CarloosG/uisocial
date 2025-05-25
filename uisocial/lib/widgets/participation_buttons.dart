@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uisocial/models/event_model.dart';
 import 'package:uisocial/auth/auth_service.dart';
 
 class ParticipationButtons extends StatefulWidget {
   final String eventId;
 
-  const ParticipationButtons({Key? key, required this.eventId}) : super(key: key);
+  const ParticipationButtons({super.key, required this.eventId});
 
   @override
   State<ParticipationButtons> createState() => _ParticipationButtonsState();

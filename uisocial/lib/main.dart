@@ -7,6 +7,11 @@ import 'package:uisocial/pages/login_page.dart';
 import 'package:uisocial/pages/notificacions_page.dart';
 import 'package:uisocial/pages/profile_page.dart';
 import 'package:uisocial/pages/search_page.dart'; 
+import 'package:uisocial/pages/chats_page.dart';
+import 'package:uisocial/pages/chat_detail_page.dart';
+import 'package:uisocial/pages/map_page.dart';
+import 'package:uisocial/pages/friends_page.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +36,11 @@ class MyApp extends StatelessWidget {
         '/eventos': (context) => const EventosPage(),
         '/notifications': (context) => const NotificationsPage(),
         '/profile': (context) => const ProfilePage(),
+        '/chats': (context) => const ChatsPage(),
+        '/chat_detail': (context) => const ChatDetailPage(),
+        '/map': (context) => const MapPage(eventName: '', location: ''),
+         '/friends': (context) => const FriendsPage(),
+
       },
       localizationsDelegates: const [
       GlobalMaterialLocalizations.delegate,

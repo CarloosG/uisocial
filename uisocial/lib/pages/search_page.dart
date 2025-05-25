@@ -6,7 +6,7 @@ import 'package:uisocial/models/event_model.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({Key? key}) : super(key: key);
+  const SearchPage({super.key});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
