@@ -1,3 +1,4 @@
+
 // lib/pages/eventos_page.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,8 +15,7 @@ class EventosPage extends StatefulWidget {
 }
 
 class _EventosPageState extends State<EventosPage> {
-  final int _currentIndex =
-      2; // Índice para Eventos (cambiado de la pestaña "Publicar")
+  final int _currentIndex = 2; // Índice para Eventos (cambiado de la pestaña "Publicar")
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final List<String> _eventTypes = [
@@ -43,10 +43,13 @@ class _EventosPageState extends State<EventosPage> {
   ];
   String? _selectedCoords;
   final _participantsController = TextEditingController();
+  final List<String> _visibilityOptions = ['Público', 'Solo amigos'];
+  String _selectedVisibility = 'Público';
 
   DateTime _selectedDate = DateTime.now();
   final authService = AuthService();
   late final EventService _eventService;
+  late final Map<String, String> _locationNameMap;
   List<Event> _userEvents = [];
   bool _isLoading = false;
   bool _isEditing = false;
@@ -57,6 +60,7 @@ class _EventosPageState extends State<EventosPage> {
     super.initState();
     final supabase = Supabase.instance.client;
     _eventService = EventService(supabase);
+    _locationNameMap = {for (var loc in _availableLocations) loc['coords']!: loc['name']!};
     _loadUserEvents();
   }
 
@@ -130,6 +134,7 @@ class _EventosPageState extends State<EventosPage> {
       _selectedDate = DateTime.now();
       _isEditing = false;
       _editEventId = null;
+      _selectedVisibility = 'Público';
     });
   }
 
@@ -138,6 +143,7 @@ class _EventosPageState extends State<EventosPage> {
     _typeController.text = event.type;
     _selectedCoords = event.location;
     _participantsController.text = event.participants.toString();
+    _selectedVisibility = event.visibility == 'friends' ? 'Solo amigos' : 'Público';
     setState(() {
       _selectedDate = event.date;
       _isEditing = true;
@@ -169,6 +175,7 @@ class _EventosPageState extends State<EventosPage> {
           userId: userId,
           createdBy: email,
           createdAt: _isEditing ? null : DateTime.now(),
+          visibility: _selectedVisibility == 'Público' ? 'public' : 'friends',
         );
 
         if (_isEditing) {
@@ -259,21 +266,19 @@ class _EventosPageState extends State<EventosPage> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value:
-                            _typeController.text.isNotEmpty
-                                ? _typeController.text
-                                : null,
+                        value: _typeController.text.isNotEmpty
+                            ? _typeController.text
+                            : null,
                         decoration: const InputDecoration(
                           labelText: 'Tipo de evento',
                           border: OutlineInputBorder(),
                         ),
-                        items:
-                            _eventTypes.map((String type) {
-                              return DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(type),
-                              );
-                            }).toList(),
+                        items: _eventTypes.map((String type) {
+                          return DropdownMenuItem<String>(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
                             _typeController.text = newValue!;
@@ -286,7 +291,6 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: _selectedCoords,
@@ -294,13 +298,12 @@ class _EventosPageState extends State<EventosPage> {
                           labelText: 'Lugar del evento',
                           border: OutlineInputBorder(),
                         ),
-                        items:
-                            _availableLocations.map((location) {
-                              return DropdownMenuItem<String>(
-                                value: location['coords'],
-                                child: Text(location['name']!),
-                              );
-                            }).toList(),
+                        items: _availableLocations.map((location) {
+                          return DropdownMenuItem<String>(
+                            value: location['coords'],
+                            child: Text(location['name']!),
+                          );
+                        }).toList(),
                         onChanged: (value) {
                           setState(() {
                             _selectedCoords = value;
@@ -313,7 +316,31 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
-
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedVisibility,
+                        decoration: const InputDecoration(
+                          labelText: 'Visibilidad del evento',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _visibilityOptions.map((String option) {
+                          return DropdownMenuItem<String>(
+                            value: option,
+                            child: Text(option),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedVisibility = newValue!;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor selecciona la visibilidad';
+                          }
+                          return null;
+                        },
+                      ),
                       const SizedBox(height: 16),
                       InkWell(
                         onTap: () => _selectDate(context),
@@ -360,20 +387,19 @@ class _EventosPageState extends State<EventosPage> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child:
-                              _isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : Text(
-                                    _isEditing
-                                        ? 'Actualizar Evento'
-                                        : 'Crear Evento',
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
                                   ),
+                                )
+                              : Text(
+                                  _isEditing
+                                      ? 'Actualizar Evento'
+                                      : 'Crear Evento',
+                                ),
                         ),
                       ),
                     ],
@@ -387,71 +413,74 @@ class _EventosPageState extends State<EventosPage> {
             _isLoading && _userEvents.isEmpty
                 ? const Center(child: CircularProgressIndicator())
                 : _userEvents.isEmpty
-                ? const Center(child: Text('No tienes eventos creados'))
-                : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _userEvents.length,
-                  itemBuilder: (context, index) {
-                    final event = _userEvents[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        title: Text(event.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text('Tipo: ${event.type}'),
-                            Text(
-                              'Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}',
-                            ),
-                            Text('Lugar: ${event.location}'),
-                            Text('Participantes: ${event.participants}'),
-                          ],
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _editEvent(event),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed:
-                                  () => showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          title: const Text('Eliminar evento'),
-                                          content: const Text(
-                                            '¿Estás seguro de que quieres eliminar este evento?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(context),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                _deleteEvent(event.id!);
-                                              },
-                                              child: const Text('Eliminar'),
-                                            ),
-                                          ],
-                                        ),
+                    ? const Center(child: Text('No tienes eventos creados'))
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _userEvents.length,
+                        itemBuilder: (context, index) {
+                          final event = _userEvents[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: ListTile(
+                              title: Text(event.name),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text('Tipo: ${event.type}'),
+                                  Text(
+                                    'Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}',
                                   ),
+                                  Text(
+                                    'Lugar: ${_locationNameMap[event.location.trim()] ?? event.location}',
+                                  ),
+                                  Text('Participantes: ${event.participants}'),
+                                  Text(
+                                    'Visibilidad: ${event.visibility == 'friends' ? 'Solo amigos' : 'Público'}',
+                                  ),
+                                ],
+                              ),
+                              isThreeLine: true,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () => _editEvent(event),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () => showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Eliminar evento'),
+                                        content: const Text(
+                                          '¿Estás seguro de que quieres eliminar este evento?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              _deleteEvent(event.id!);
+                                            },
+                                            child: const Text('Eliminar'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
           ],
         ),
       ),
