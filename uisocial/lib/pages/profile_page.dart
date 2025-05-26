@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
