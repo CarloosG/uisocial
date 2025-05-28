@@ -40,7 +40,7 @@ dependencies:
   equatable:
   meta: 
   supabase_flutter: ^2.9.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   uuid: ^3.0.7
   flutter_localizations:
     sdk: flutter
