@@ -37,6 +37,7 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
+  // Método para iniciar sesión con email y contraseña
   void login() async {
     final email = _emailController.text;
     final password = _passwordController.text;
@@ -52,30 +53,30 @@ class _LoginPageState extends State<LoginPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+          SnackBar(content: Text("Error: $e"))
         );
       }
     }
   }
 
-  void loginWithDiscord() async {
+  // Nuevo método para iniciar sesión con Figma
+  void loginWithFigma() async {
     try {
-      final success = await authService.signInWithDiscord();
+      final success = await authService.signInWithFigma();
       if (success && mounted) {
-        // El OAuth redirect manejará la navegación automáticamente
-        // Pero puedes agregar lógica adicional aquí si es necesario
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Redirigiendo a Discord...")),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al iniciar sesión con Discord")),
+          const SnackBar(content: Text("Error al iniciar sesión con Figma"))
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+          SnackBar(content: Text("Error: $e"))
         );
       }
     }
@@ -99,9 +100,9 @@ class _LoginPageState extends State<LoginPage>
                 children: [
                   Image.asset('assets/uisocial.png', height: 200),
                   const SizedBox(height: 20),
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: const [
                       Text(
                         'UIS',
                         style: TextStyle(
@@ -147,6 +148,8 @@ class _LoginPageState extends State<LoginPage>
                           obscureText: true,
                         ),
                         const SizedBox(height: 20),
+                        
+                        // Botón de inicio de sesión tradicional
                         ElevatedButton(
                           onPressed: login,
                           style: ElevatedButton.styleFrom(
@@ -164,16 +167,42 @@ class _LoginPageState extends State<LoginPage>
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
+                        
                         const SizedBox(height: 15),
                         
                         // Divisor "O"
-                        const Row(
+                        Row(
                           children: [
-                            Expanded(child: Divider(color: Colors.white70)),
+                            Expanded(child: Divider(color: Colors.grey[600])),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
                                 'O',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[600])),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        
+                        // Botón de Figma OAuth
+                        ElevatedButton.icon(
+                          onPressed: loginWithFigma,
+                          icon: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: const BoxDecoration(
+                              color: Colors.black,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'F',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -181,27 +210,15 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: Colors.white70)),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 15),
-                        
-                        // Botón de Discord
-                        ElevatedButton.icon(
-                          onPressed: loginWithDiscord,
-                          icon: const Icon(
-                            Icons.chat,
-                            color: Colors.white,
                           ),
                           label: const Text(
-                            'Continuar con Discord',
+                            'Continuar con Figma',
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF5865F2), // Color oficial de Discord
+                            backgroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 40,
+                              horizontal: 60,
                               vertical: 15,
                             ),
                             shape: RoundedRectangleBorder(

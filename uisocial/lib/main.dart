@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/pages/eventos_page.dart';
 import 'package:uisocial/pages/home_page.dart';
 import 'package:uisocial/pages/login_page.dart';
@@ -67,5 +68,53 @@ class MyApp extends StatelessWidget {
     ],
     locale: const Locale('es', ''),
     );
+  }
+}
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAuthListener();
+  }
+
+  // Escucha cambios en la autenticación (incluyendo OAuth)
+  void _setupAuthListener() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        // Usuario autenticado, navegar al home
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else if (event == AuthChangeEvent.signedOut) {
+        // Usuario desconectado, navegar al login
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Verificar si ya hay una sesión activa
+    final session = Supabase.instance.client.auth.currentSession;
+    
+    if (session != null) {
+      return const HomePage();
+    } else {
+      return const LoginPage();
+    }
   }
 }

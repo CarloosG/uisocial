@@ -1,56 +1,65 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show OAuthProvider;
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // Inicio de sesión con email y contraseña
   Future<AuthResponse> signInWithEmailPassword(
-      String email, String password) async {
+    String email, String password) async {
     return await _supabase.auth.signInWithPassword(
-        email: email, password: password);
+      email: email, 
+      password: password
+    );
   }
 
+  // Registro con email y contraseña
   Future<AuthResponse> signUpWithEmailPassword(
-      String email, String password) async {
-    return await _supabase.auth.signUp(email: email, password: password);
+    String email, String password) async {
+    return await _supabase.auth.signUp(
+      email: email, 
+      password: password
+    );
   }
 
-  // Nuevo método para iniciar sesión con Discord
-  Future<bool> signInWithDiscord() async {
+  // Nuevo método: Inicio de sesión con Figma OAuth
+  Future<bool> signInWithFigma() async {
     try {
-      await _supabase.auth.signInWithOAuth(
-        OAuthProvider.discord,
-        redirectTo: 'io.supabase.flutterquickstart://login-callback/',
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.figma,
+        redirectTo: 'uisocial://login-callback', // Tu esquema personalizado
       );
-      return true;
+      return response;
     } catch (e) {
-      print('Error signing in with Discord: $e');
+      print('Error al iniciar sesión con Figma: $e');
       return false;
     }
   }
 
+  // Cerrar sesión
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
 
+  // Obtener email del usuario actual
   String? getCurrentUserEmaiil() {
     final session = _supabase.auth.currentSession;
     final user = session?.user;
     return user?.email;
   }
 
+  // Obtener ID del usuario actual
   String? getCurrentUserId() {
     final user = Supabase.instance.client.auth.currentUser;
     return user?.id;
   }
 
-  // Método para obtener información del usuario actual
-  User? getCurrentUser() {
-    return _supabase.auth.currentUser;
+  // Verificar si el usuario está autenticado
+  bool get isAuthenticated {
+    return _supabase.auth.currentSession != null;
   }
 
-  // Método para verificar si el usuario está autenticado
-  bool isUserSignedIn() {
-    return _supabase.auth.currentUser != null;
+  // Stream para escuchar cambios de autenticación
+  Stream<AuthState> get authStateChanges {
+    return _supabase.auth.onAuthStateChange;
   }
 }
