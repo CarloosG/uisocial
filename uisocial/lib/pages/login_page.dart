@@ -4,7 +4,6 @@ import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/pages/register_page.dart';
 import 'package:uisocial/pages/home_page.dart';
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -52,9 +51,32 @@ class _LoginPageState extends State<LoginPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
+    }
+  }
+
+  void loginWithDiscord() async {
+    try {
+      final success = await authService.signInWithDiscord();
+      if (success && mounted) {
+        // El OAuth redirect manejará la navegación automáticamente
+        // Pero puedes agregar lógica adicional aquí si es necesario
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Redirigiendo a Discord...")),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al iniciar sesión con Discord")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
     }
   }
@@ -68,7 +90,7 @@ class _LoginPageState extends State<LoginPage>
         children: [
           Container(
             width: double.infinity,
-            color: Color.fromRGBO(122, 234, 170, 1),
+            color: const Color.fromRGBO(122, 234, 170, 1),
           ),
           Center(
             child: SingleChildScrollView(
@@ -77,9 +99,9 @@ class _LoginPageState extends State<LoginPage>
                 children: [
                   Image.asset('assets/uisocial.png', height: 200),
                   const SizedBox(height: 20),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'UIS',
                         style: TextStyle(
@@ -109,7 +131,7 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Email",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                         ),
@@ -119,7 +141,7 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Password",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                           obscureText: true,
@@ -143,28 +165,72 @@ class _LoginPageState extends State<LoginPage>
                           ),
                         ),
                         const SizedBox(height: 15),
-                        GestureDetector(
-                          onTap:
-                              () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
+                        
+                        // Divisor "O"
+                        const Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.white70)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'O',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
+                            ),
+                            Expanded(child: Divider(color: Colors.white70)),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        
+                        // Botón de Discord
+                        ElevatedButton.icon(
+                          onPressed: loginWithDiscord,
+                          icon: const Icon(
+                            Icons.chat,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Continuar con Discord',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5865F2), // Color oficial de Discord
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          ),
                           child: MouseRegion(
                             onEnter: (_) => setState(() => _isHovered = true),
                             onExit: (_) => setState(() => _isHovered = false),
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
-                                color:
-                                    _isHovered
-                                        ? Colors.blueAccent
-                                        : Colors.blue, // Cambio de color
-                                fontWeight:
-                                    _isHovered
-                                        ? FontWeight.bold
-                                        : FontWeight.normal, // Cambio de grosor
+                                color: _isHovered
+                                    ? Colors.blueAccent
+                                    : Colors.blue,
+                                fontWeight: _isHovered
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                               child: const Text(
                                 "No tienes una cuenta? Regístrate",
@@ -179,7 +245,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-
           Positioned(
             bottom: 0,
             left: 0,
@@ -195,7 +260,10 @@ class _LoginPageState extends State<LoginPage>
                       height: 150,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color.fromARGB(66, 255, 255, 255), Color.fromARGB(255, 255, 255, 255)],
+                          colors: [
+                            Color.fromARGB(66, 255, 255, 255),
+                            Color.fromARGB(255, 255, 255, 255)
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           stops: [0.3, 1.0],
@@ -226,8 +294,7 @@ class WaveClipper extends CustomClipper<Path> {
     path.moveTo(0, size.height * 0.4);
 
     for (double i = 0; i <= size.width; i += 1) {
-      double y =
-          size.height * 0.4 +
+      double y = size.height * 0.4 +
           amplitude * sin((i / waveLength) * 2 * pi + animationValue * 2 * pi);
       path.lineTo(i, y);
     }

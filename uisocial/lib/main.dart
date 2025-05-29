@@ -23,8 +23,18 @@ void main() async {
       eventsPerSecond: 10,
     ),
   );
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    final AuthChangeEvent event = data.event;
+    final Session? session = data.session;
+    
+    if (event == AuthChangeEvent.signedIn && session != null) {
+      // Usuario autenticado exitosamente
+      // Navegar a HomePage si es necesario
+    }
+  });
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

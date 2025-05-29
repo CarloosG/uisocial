@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uisocial/models/event_model.dart';
 
 class EventService {
   final Supabase supabase;
@@ -27,4 +28,10 @@ class EventService {
     
     return response.map((event) => Event.fromJson(event)).toList();
   }
+}
+
+extension on Supabase {
+  get auth => null;
+  
+  from(String s) {}
 } 
