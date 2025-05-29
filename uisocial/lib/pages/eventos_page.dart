@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uisocial/models/event_model.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 import 'package:uisocial/auth/auth_service.dart';
+import 'package:uisocial/services/notification_service.dart';
 
 class EventosPage extends StatefulWidget {
   const EventosPage({super.key});
@@ -32,6 +33,15 @@ class _EventosPageState extends State<EventosPage> {
     'Competencia',
   ];
   final TextEditingController _typeController = TextEditingController();
+  final Map<String, String> _locationNameMap = {
+    '7.139912, -73.120300': 'Burladero',
+    '7.140968, -73.120826': 'Biblioteca UIS',
+    '7.139591, -73.118614': 'Cancha de Fútbol Principal',
+    '7.139657, -73.117716': 'Gimnasio Principal',
+    '7.139856, -73.119887': 'Auditorio Luis A.',
+    '7.141962, -73.121980': 'Piscina UIS',
+    '7.140353, -73.121930': 'Cafetería CT',
+  };
   final List<Map<String, String>> _availableLocations = [
     {'name': 'Burladero', 'coords': '7.139912, -73.120300'},
     {'name': 'Biblioteca UIS', 'coords': '7.140968, -73.120826'},
@@ -45,8 +55,11 @@ class _EventosPageState extends State<EventosPage> {
   final _participantsController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  String _selectedVisibility = 'public';
   final authService = AuthService();
   late final EventService _eventService;
+  late final NotificationService _notificationService;
   List<Event> _userEvents = [];
   bool _isLoading = false;
   bool _isEditing = false;
@@ -57,6 +70,7 @@ class _EventosPageState extends State<EventosPage> {
     super.initState();
     final supabase = Supabase.instance.client;
     _eventService = EventService(supabase);
+    _notificationService = NotificationService(supabase);
     _loadUserEvents();
   }
 
@@ -121,6 +135,19 @@ class _EventosPageState extends State<EventosPage> {
     }
   }
 
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
+
   void _clearForm() {
     _nameController.clear();
     _typeController.clear();
@@ -128,6 +155,8 @@ class _EventosPageState extends State<EventosPage> {
     _participantsController.clear();
     setState(() {
       _selectedDate = DateTime.now();
+      _selectedTime = TimeOfDay.now();
+      _selectedVisibility = 'public';
       _isEditing = false;
       _editEventId = null;
     });
@@ -140,6 +169,8 @@ class _EventosPageState extends State<EventosPage> {
     _participantsController.text = event.participants.toString();
     setState(() {
       _selectedDate = event.date;
+      _selectedTime = event.time;
+      _selectedVisibility = event.visibility;
       _isEditing = true;
       _editEventId = event.id;
     });
@@ -164,11 +195,13 @@ class _EventosPageState extends State<EventosPage> {
           name: _nameController.text,
           type: _typeController.text,
           date: _selectedDate,
+          time: _selectedTime,
           location: _selectedCoords!,
           participants: int.parse(_participantsController.text),
           userId: userId,
           createdBy: email,
           createdAt: _isEditing ? null : DateTime.now(),
+          visibility: _selectedVisibility,
         );
 
         if (_isEditing) {
@@ -177,7 +210,18 @@ class _EventosPageState extends State<EventosPage> {
             const SnackBar(content: Text('Evento actualizado correctamente')),
           );
         } else {
-          await _eventService.createEvent(event);
+          final createdEvent = await _eventService.createEvent(event);
+          await _notificationService.createEventNotification(
+            createdEvent.id!,
+            createdEvent.name,
+            createdEvent.type,
+            createdEvent.date,
+            createdEvent.time,
+            _locationNameMap[createdEvent.location.trim()] ?? 'Ubicación desconocida',
+            userId,
+            email ?? 'Usuario',
+            createdEvent.visibility,
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Evento creado correctamente')),
           );
@@ -186,9 +230,8 @@ class _EventosPageState extends State<EventosPage> {
         _clearForm();
         await _loadUserEvents();
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al guardar evento: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error al guardar evento: $e')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -315,25 +358,52 @@ class _EventosPageState extends State<EventosPage> {
                       ),
 
                       const SizedBox(height: 16),
-                      InkWell(
-                        onTap: () => _selectDate(context),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Fecha del evento',
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                DateFormat('dd/MM/yyyy').format(_selectedDate),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => _selectDate(context),
+                              child: Text(
+                                'Fecha: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
                               ),
-                              const Icon(Icons.calendar_today),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => _selectTime(context),
+                              child: Text(
+                                'Hora: ${_selectedTime.format(context)}',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+
                       const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedVisibility,
+                        decoration: const InputDecoration(
+                          labelText: 'Visibilidad',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'public',
+                            child: Text('Público'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'friends',
+                            child: Text('Solo Amigos'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedVisibility = value!;
+                          });
+                        },
+                      ),
+
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _participantsController,
@@ -406,8 +476,10 @@ class _EventosPageState extends State<EventosPage> {
                             Text(
                               'Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}',
                             ),
-                            Text('Lugar: ${event.location}'),
+                            Text('Hora: ${event.time.format(context)}'),
+                            Text('Lugar: ${_locationNameMap[event.location.trim()] ?? 'Ubicación desconocida'}'),
                             Text('Participantes: ${event.participants}'),
+                            Text('Visibilidad: ${event.visibility == 'public' ? 'Público' : 'Solo Amigos'}'),
                           ],
                         ),
                         isThreeLine: true,

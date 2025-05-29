@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uisocial/pages/eventos_page.dart';
 import 'package:uisocial/pages/home_page.dart';
 import 'package:uisocial/pages/login_page.dart';
-import 'package:uisocial/pages/notificacions_page.dart';
+import 'package:uisocial/pages/notifications_page.dart';
 import 'package:uisocial/pages/profile_page.dart';
 import 'package:uisocial/pages/search_page.dart'; 
 import 'package:uisocial/pages/chats_page.dart';

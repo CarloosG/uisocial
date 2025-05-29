@@ -22,16 +22,31 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = false;
   String _filterType = 'Todos';
   List<String> _eventTypes = ['Todos'];
-  late PageController _pageController;
-
+  final PageController _pageController = PageController(viewportFraction: 0.7);
+  String? _highlightedEventId;
 
   @override
   void initState() {
     super.initState();
     final supabase = Supabase.instance.client;
     _eventService = EventService(supabase);
-    _loadEvents();
-    _pageController = PageController(viewportFraction: 0.7);
+    
+    // Verificar si venimos de una notificación
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args.containsKey('highlightedEventId')) {
+        setState(() {
+          _highlightedEventId = args['highlightedEventId'];
+        });
+      }
+      _loadEvents();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   final Map<String, String> _locationNameMap = {
@@ -61,29 +76,57 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final events = await _eventService.getEvents();
+      final currentUserId = authService.getCurrentUserId();
 
-      // Filtrar solo eventos con fecha igual o posterior a hoy
+      // Filtrar eventos basados en la visibilidad y la fecha
       final now = DateTime.now();
-      final upcomingEvents =
-          events
-              .where(
-                (e) => !e.date.isBefore(DateTime(now.year, now.month, now.day)),
-              )
-              .toList();
+      final visibleEvents = events.where((e) {
+        final isUpcoming = !e.date.isBefore(DateTime(now.year, now.month, now.day));
+        final isPublic = e.visibility == 'public';
+        final isOwner = e.userId == currentUserId;
+        
+        // TODO: Implementar lógica para verificar si el usuario actual es amigo del creador
+        final isFriend = false; // Por ahora asumimos que no hay amigos
+        
+        return isUpcoming && (isPublic || isOwner || (e.visibility == 'friends' && isFriend));
+      }).toList();
 
-      // Ordenar de más cercano a más lejano
-      upcomingEvents.sort((a, b) => a.date.compareTo(b.date));
+      // Ordenar eventos
+      visibleEvents.sort((a, b) {
+        // Si hay un evento destacado, ponerlo primero
+        if (_highlightedEventId != null) {
+          if (a.id == _highlightedEventId) return -1;
+          if (b.id == _highlightedEventId) return 1;
+        }
+        return a.date.compareTo(b.date);
+      });
 
-      final types = upcomingEvents.map((e) => e.type).toSet().toList()..sort();
+      final types = visibleEvents.map((e) => e.type).toSet().toList()..sort();
 
       setState(() {
-        _events = upcomingEvents;
+        _events = visibleEvents;
         _eventTypes = ['Todos', ...types];
+        
+        // Si hay un evento destacado, mover a su posición
+        if (_highlightedEventId != null) {
+          final index = visibleEvents.indexWhere((e) => e.id == _highlightedEventId);
+          if (index != -1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _pageController.animateToPage(
+                index,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            });
+          }
+        }
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al cargar eventos: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar eventos: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -187,288 +230,262 @@ class _HomePageState extends State<HomePage> {
                         controller: _pageController,
                         itemCount: _filteredEvents.length,
                         itemBuilder: (context, index) {
-                          return AnimatedBuilder(
-                            animation: _pageController,
-                            builder: (context, child) {
-                              double scale = 1.0;
-                              if (_pageController.position.haveDimensions) {
-                                double currentPage =
-                                    _pageController.page ??
-                                    _pageController.initialPage.toDouble();
-                                scale = (1 -
-                                        ((currentPage - index).abs() * 0.3))
-                                    .clamp(0.7, 1.0);
-                              }
-                              return Center(
-                                child: Transform.scale(
-                                  scale: scale,
-                                  child: child,
+                          final event = _filteredEvents[index];
+                          final bool isHighlighted = event.id == _highlightedEventId;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isHighlighted
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.2),
+                                  spreadRadius: isHighlighted ? 4 : 2,
+                                  blurRadius: isHighlighted ? 8 : 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                              );
-                            },
+                              ],
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 16,
                               ),
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                elevation: 6,
-                                shadowColor: Colors.green.withOpacity(0.3),
-                                color: Colors.white.withOpacity(0.9),
-                                child: Column(
-                                  children: [
-                                    // --- imagen ---
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(16),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          Image.asset(
-                                            _placeImages[_locationNameMap[_filteredEvents[index]
-                                                        .location
-                                                        .trim()] ??
-                                                    ''] ??
-                                                'assets/images/lugares/default.jpg',
-                                            width: double.infinity,
-                                            height: 350,
-                                            fit: BoxFit.cover,
-                                          ),
-                                          Container(
-                                            height: 350,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  const Color.fromARGB(
-                                                    0,
-                                                    255,
-                                                    255,
-                                                    255,
-                                                  ),
-                                                  const Color.fromARGB(
-                                                    66,
-                                                    0,
-                                                    0,
-                                                    0,
-                                                  ).withOpacity(0.5),
-                                                ],
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                              ),
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                    top: Radius.circular(16),
-                                                  ),
-                                            ),
-                                          ),
-                                          if (_filteredEvents[index]
-                                                      .date
-                                                      .year ==
-                                                  DateTime.now().year &&
-                                              _filteredEvents[index]
-                                                      .date
-                                                      .month ==
-                                                  DateTime.now().month &&
-                                              _filteredEvents[index].date.day ==
-                                                  DateTime.now().day)
-                                            Positioned(
-                                              top: 12,
-                                              right: 12,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green.shade700,
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors
-                                                          .green
-                                                          .shade700
-                                                          .withOpacity(0.5),
-                                                      blurRadius: 8,
-                                                      offset: const Offset(
-                                                        0,
-                                                        3,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: const Text(
-                                                  'HOY',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 1.2,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                              child: Column(
+                                children: [
+                                  // --- imagen ---
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16),
                                     ),
-
-                                    // --- contenido textual ---
-                                    ListTile(
-                                      onTap: () {
-                                        final defaultLocation =
-                                            "7.119349,-73.122741";
-                                        final safeLocation =
-                                            (_filteredEvents[index]
-                                                    .location
-                                                    .isNotEmpty)
-                                                ? _filteredEvents[index]
-                                                    .location
-                                                : defaultLocation;
-
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder:
-                                                (context) => MapPage(
-                                                  eventName:
-                                                      _filteredEvents[index]
-                                                          .name,
-                                                  location: safeLocation,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 16,
-                                          ),
-                                      title: Text(
-                                        _filteredEvents[index].name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 20,
-                                          color: Colors.green.shade900,
-                                          shadows: [
-                                            Shadow(
-                                              color: Colors.green.shade100
-                                                  .withOpacity(0.7),
-                                              blurRadius: 3,
-                                              offset: const Offset(0, 1),
-                                            ),
-                                          ],
+                                    child: Stack(
+                                      children: [
+                                        Image.asset(
+                                          _placeImages[_locationNameMap[event.location.trim()] ?? ''] ??
+                                              'assets/images/lugares/default.jpg',
+                                          width: double.infinity,
+                                          height: 350,
+                                          fit: BoxFit.cover,
                                         ),
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 8),
-                                          _buildEventDetail(
-                                            Icons.category,
-                                            'Tipo',
-                                            _filteredEvents[index].type,
-                                          ),
-                                          _buildEventDetail(
-                                            Icons.calendar_today,
-                                            'Fecha',
-                                            DateFormat(
-                                              'EEEE, d MMMM yyyy',
-                                              'es',
-                                            ).format(
-                                              _filteredEvents[index].date,
+                                        Container(
+                                          height: 350,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                const Color.fromARGB(
+                                                  0,
+                                                  255,
+                                                  255,
+                                                  255,
+                                                ),
+                                                const Color.fromARGB(
+                                                  66,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                ).withOpacity(0.5),
+                                              ],
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
                                             ),
+                                            borderRadius:
+                                                const BorderRadius.vertical(
+                                                  top: Radius.circular(16),
+                                                ),
                                           ),
-                                          _buildEventDetail(
-                                            Icons.location_on,
-                                            'Lugar',
-                                            _locationNameMap[_filteredEvents[index]
-                                                    .location
-                                                    .trim()] ??
-                                                'Ubicación desconocida',
-                                          ),
-                                          _buildEventDetail(
-                                            Icons.people,
-                                            'Participantes',
-                                            _filteredEvents[index].participants
-                                                .toString(),
-                                          ),
-                                          if (_filteredEvents[index]
-                                                  .createdBy !=
-                                              null)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 6,
+                                        ),
+                                        if (event.date.year == DateTime.now().year &&
+                                            event.date.month == DateTime.now().month &&
+                                            event.date.day == DateTime.now().day)
+                                          Positioned(
+                                            top: 12,
+                                            right: 12,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.shade700,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors
+                                                        .green
+                                                        .shade700
+                                                        .withOpacity(0.5),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(
+                                                      0,
+                                                      3,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              child: Text(
-                                                'Creado por: ${_filteredEvents[index].createdBy}',
+                                              child: const Text(
+                                                'HOY',
                                                 style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.green.shade700
-                                                      .withOpacity(0.7),
-                                                  fontStyle: FontStyle.italic,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.2,
                                                 ),
                                               ),
                                             ),
-                                          ParticipationButtons(
-                                            eventId: _filteredEvents[index].id!,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // --- contenido textual ---
+                                  ListTile(
+                                    onTap: () {
+                                      final defaultLocation = "7.119349,-73.122741";
+                                      final safeLocation =
+                                          (event.location.isNotEmpty)
+                                              ? event.location
+                                              : defaultLocation;
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => MapPage(
+                                                eventName: event.name,
+                                                location: safeLocation,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 16,
+                                        ),
+                                    title: Text(
+                                      event.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 20,
+                                        color: Colors.green.shade900,
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.green.shade100
+                                                .withOpacity(0.7),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
                                           ),
                                         ],
                                       ),
-                                      isThreeLine: true,
                                     ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 8),
+                                        _buildEventDetail(
+                                          Icons.category,
+                                          'Tipo',
+                                          event.type,
+                                        ),
+                                        _buildEventDetail(
+                                          Icons.calendar_today,
+                                          'Fecha',
+                                          DateFormat(
+                                            'EEEE, d MMMM yyyy',
+                                            'es',
+                                          ).format(
+                                            event.date,
+                                          ),
+                                        ),
+                                        _buildEventDetail(
+                                          Icons.location_on,
+                                          'Lugar',
+                                          _locationNameMap[event.location.trim()] ??
+                                              'Ubicación desconocida',
+                                        ),
+                                        _buildEventDetail(
+                                          Icons.people,
+                                          'Participantes',
+                                          event.participants.toString(),
+                                        ),
+                                        if (event.createdBy != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6,
+                                            ),
+                                            child: Text(
+                                              'Creado por: ${event.createdBy}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.green.shade700
+                                                    .withOpacity(0.7),
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
+                                        ParticipationButtons(
+                                          eventId: event.id!,
+                                        ),
+                                      ],
+                                    ),
+                                    isThreeLine: true,
+                                  ),
 
-                                    // --- botón de calendario ---
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 20,
-                                        bottom: 12,
-                                      ),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: OutlinedButton.icon(
-                                          icon: Icon(
-                                            Icons.calendar_month,
+                                  // --- botón de calendario ---
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      right: 20,
+                                      bottom: 12,
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: OutlinedButton.icon(
+                                        icon: Icon(
+                                          Icons.calendar_month,
+                                          color: Colors.green.shade700,
+                                        ),
+                                        label: Text(
+                                          'Agregar al calendario',
+                                          style: TextStyle(
                                             color: Colors.green.shade700,
                                           ),
-                                          label: Text(
-                                            'Agregar al calendario',
-                                            style: TextStyle(
-                                              color: Colors.green.shade700,
-                                            ),
-                                          ),
-                                          style: OutlinedButton.styleFrom(
-                                            side: BorderSide(
-                                              color: Colors.green.shade700,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 8,
-                                            ),
-                                          ),
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Función de calendario próximamente',
-                                                ),
-                                              ),
-                                            );
-                                          },
                                         ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(
+                                            color: Colors.green.shade700,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Función de calendario próximamente',
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -506,6 +523,60 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEventCard(Event event, double scale) {
+    final isHighlighted = event.id == _highlightedEventId;
+    
+    return Transform.scale(
+      scale: scale,
+      child: Card(
+        elevation: isHighlighted ? 8 : 4,
+        margin: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+          side: isHighlighted
+              ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
+              : BorderSide.none,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ... existing card content ...
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Tipo: ${event.type}'),
+                  Text('Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}'),
+                  Text('Hora: ${event.time.format(context)}'),
+                  Text('Ubicación: ${_locationNameMap[event.location] ?? event.location}'),
+                  Text('Participantes: ${event.participants}'),
+                  Text(
+                    'Visibilidad: ${event.visibility == 'public' ? 'Público' : 'Solo Amigos'}',
+                    style: TextStyle(
+                      color: event.visibility == 'public'
+                          ? Colors.green
+                          : Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ... rest of the card content ...
+          ],
+        ),
       ),
     );
   }
