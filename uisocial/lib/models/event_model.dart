@@ -1,41 +1,51 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/material.dart' show TimeOfDay;
 
 class Event {
   final String? id;
   final String name;
   final String type;
   final DateTime date;
+  final TimeOfDay time;
   final String location;
   final int participants;
   final String userId;
   final String? createdBy;
   final DateTime? createdAt;
+  final String visibility; // 'public' or 'friends'
 
   Event({
     this.id,
     required this.name,
     required this.type,
     required this.date,
+    required this.time,
     required this.location,
     required this.participants,
     required this.userId,
     this.createdBy,
     this.createdAt,
+    required this.visibility,
   });
 
   // Convertir de JSON a Event
   factory Event.fromJson(Map<String, dynamic> json) {
+    final timeStr = json['time'] as String;
+    final timeParts = timeStr.split(':');
+    
     return Event(
       id: json['id'],
       name: json['name'],
       type: json['type'],
       date: DateTime.parse(json['date']),
+      time: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
       location: json['location'],
       participants: json['participants'],
       userId: json['user_id'],
       createdBy: json['created_by'],
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      visibility: json['visibility'] ?? 'public',
     );
   }
 
@@ -46,11 +56,13 @@ class Event {
       'name': name,
       'type': type,
       'date': date.toIso8601String(),
+      'time': '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
       'location': location,
       'participants': participants,
       'user_id': userId,
       'created_by': createdBy,
       'created_at': createdAt?.toIso8601String(),
+      'visibility': visibility,
     };
   }
 }
