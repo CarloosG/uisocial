@@ -1,10 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:uisocial/widgets/custom_bottom_navigation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart'; // Necesitas agregar esta dependencia
-import 'package:cached_network_image/cached_network_image.dart'; // Necesitas agregar esta dependencia
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,7 +12,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
   final int _currentIndex = 4;
   final _supabase = Supabase.instance.client;
   
@@ -30,9 +29,27 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   
+  // Animación para el modo edición
+  late AnimationController _editAnimationController;
+  late Animation<double> _editAnimation;
+
+  // Colores de la paleta
+  static const Color _primaryGreen = Color(0xFF2E7D32);
+  static const Color _lightGreen = Color(0xFF4CAF50);
+  static const Color _softGreen = Color(0xFF81C784);
+  static const Color _backgroundWhite = Color(0xFFFAFAFA);
+  
   @override
   void initState() {
     super.initState();
+    _editAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _editAnimation = CurvedAnimation(
+      parent: _editAnimationController,
+      curve: Curves.easeInOut,
+    );
     _loadUserProfile();
     _loadFriends();
   }
@@ -41,6 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     _usernameController.dispose();
     _bioController.dispose();
+    _editAnimationController.dispose();
     super.dispose();
   }
   
@@ -79,7 +97,12 @@ class _ProfilePageState extends State<ProfilePage> {
   } catch (error) {
     setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error al cargar perfil: $error')),
+      SnackBar(
+        content: Text('Error al cargar perfil: $error'),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 }
@@ -105,7 +128,9 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al cargar amigos: $error'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
@@ -129,14 +154,31 @@ class _ProfilePageState extends State<ProfilePage> {
     await _loadUserProfile();
     
     setState(() => _isEditing = false);
+    _editAnimationController.reverse();
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Perfil actualizado')),
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Perfil actualizado correctamente'),
+          ],
+        ),
+        backgroundColor: _lightGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   } catch (error) {
     setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $error')),
+      SnackBar(
+        content: Text('Error: $error'),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 }
@@ -173,7 +215,12 @@ Future<void> _changeProfileImage() async {
   } catch (error) {
     setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $error')),
+      SnackBar(
+        content: Text('Error: $error'),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 }
@@ -204,147 +251,359 @@ Future<void> _changeProfileImage() async {
   void _navigateToFriendsPage() {
     Navigator.pushNamed(context, '/friends');
   }
+
+  Widget _buildProfileImage() {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: _primaryGreen.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: GestureDetector(
+        onTap: _changeProfileImage,
+        child: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            Hero(
+              tag: 'profile_image',
+              child: CircleAvatar(
+                radius: 70,
+                backgroundColor: _softGreen.withOpacity(0.3),
+                backgroundImage: _profileImageUrl != null
+                    ? CachedNetworkImageProvider(_profileImageUrl!)
+                    : null,
+                child: _profileImageUrl == null
+                    ? Icon(Icons.person, size: 70, color: _primaryGreen)
+                    : null,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _lightGreen,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required Widget child,
+    EdgeInsets? padding,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding ?? const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildEditableField({
+    required String label,
+    required TextEditingController controller,
+    required String displayValue,
+    int maxLines = 1,
+    bool isEditing = false,
+  }) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: isEditing
+          ? TextFormField(
+              key: ValueKey('editing_$label'),
+              controller: controller,
+              maxLines: maxLines,
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: TextStyle(color: _primaryGreen),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _softGreen),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _lightGreen, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _softGreen.withOpacity(0.5)),
+                ),
+                filled: true,
+                fillColor: _backgroundWhite,
+              ),
+              style: const TextStyle(fontSize: 16),
+            )
+          : Container(
+              key: ValueKey('display_$label'),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _primaryGreen,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    displayValue.isEmpty ? "No especificado" : displayValue,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: displayValue.isEmpty ? Colors.grey[500] : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundWhite,
       appBar: AppBar(
-        title: Text(_isEditing ? "Editar Perfil" : "Mi Perfil"),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: _primaryGreen,
+        title: Text(
+          _isEditing ? "Editar Perfil" : "Mi Perfil",
+          style: TextStyle(
+            color: _primaryGreen,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _lightGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.edit, color: _lightGreen),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isEditing = true;
+                  });
+                  _editAnimationController.forward();
+                },
+              ),
             ),
-          if (_isEditing)
+          if (_isEditing) ...[
             IconButton(
-              icon: const Icon(Icons.save),
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _lightGreen,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.save, color: Colors.white, size: 20),
+              ),
               onPressed: _updateProfile,
             ),
-          if (_isEditing)
             IconButton(
-              icon: const Icon(Icons.cancel),
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
               onPressed: () {
                 setState(() {
                   _usernameController.text = _username;
                   _bioController.text = _bio;
                   _isEditing = false;
                 });
+                _editAnimationController.reverse();
               },
             ),
+          ],
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Foto de perfil
-                  GestureDetector(
-                    onTap: _changeProfileImage,
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: _profileImageUrl != null
-                              ? CachedNetworkImageProvider(_profileImageUrl!)
-                              : null,
-                          child: _profileImageUrl == null
-                              ? const Icon(Icons.person, size: 60)
-                              : null,
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            shape: BoxShape.circle,
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(_lightGreen),
+              ),
+            )
+          : RefreshIndicator(
+              color: _lightGreen,
+              onRefresh: () async {
+                await _loadUserProfile();
+                await _loadFriends();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Foto de perfil con animación hero
+                    _buildProfileImage(),
+                    const SizedBox(height: 24),
+                    
+                    // Información básica
+                    _buildInfoCard(
+                      child: Column(
+                        children: [
+                          _buildEditableField(
+                            label: 'Nombre de usuario',
+                            controller: _usernameController,
+                            displayValue: _username,
+                            isEditing: _isEditing,
                           ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
+                          const SizedBox(height: 20),
+                          
+                          // Email (solo lectura con mejor diseño)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Email',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: _primaryGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.email_outlined, 
+                                       color: _softGreen, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _email,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Nombre de usuario
-                  _isEditing
-                      ? TextField(
-                          controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre de usuario',
-                            border: OutlineInputBorder(),
-                          ),
-                        )
-                      : Text(
-                          _username,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                  const SizedBox(height: 8),
-                  
-                  // Email (solo lectura)
-                  Text(
-                    _email,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Biografía
-                  _isEditing
-                      ? TextField(
-                          controller: _bioController,
-                          decoration: const InputDecoration(
-                            labelText: 'Biografía',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 3,
-                        )
-                      : Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _bio.isEmpty ? "No hay biografía" : _bio,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                  const SizedBox(height: 24),
-                  
-                  // Botón para ir a la página de amigos
-                  ElevatedButton.icon(
-                    onPressed: _navigateToFriendsPage,
-                    icon: const Icon(Icons.people),
-                    label: Text('Amigos (${_friends.length})'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
+                        ],
                       ),
                     ),
-                  ),
-                  
-                  // Aquí puedes añadir más secciones del perfil si lo necesitas
-                ],
+                    const SizedBox(height: 16),
+                    
+                    // Biografía
+                    _buildInfoCard(
+                      child: _buildEditableField(
+                        label: 'Biografía',
+                        controller: _bioController,
+                        displayValue: _bio,
+                        maxLines: 3,
+                        isEditing: _isEditing,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Botón para ir a la página de amigos con mejor diseño
+                    Container(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: _navigateToFriendsPage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _lightGreen,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.people, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Mis Amigos',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '${_friends.length} ${_friends.length == 1 ? 'amigo' : 'amigos'}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
       bottomNavigationBar: CustomBottomNavigation(

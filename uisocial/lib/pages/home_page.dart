@@ -30,10 +30,11 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     final supabase = Supabase.instance.client;
     _eventService = EventService(supabase);
-    
+
     // Verificar si venimos de una notificación
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args.containsKey('highlightedEventId')) {
         setState(() {
           _highlightedEventId = args['highlightedEventId'];
@@ -80,16 +81,30 @@ class _HomePageState extends State<HomePage> {
 
       // Filtrar eventos basados en la visibilidad y la fecha
       final now = DateTime.now();
-      final visibleEvents = events.where((e) {
-        final isUpcoming = !e.date.isBefore(DateTime(now.year, now.month, now.day));
-        final isPublic = e.visibility == 'public';
-        final isOwner = e.userId == currentUserId;
-        
-        // TODO: Implementar lógica para verificar si el usuario actual es amigo del creador
-        final isFriend = false; // Por ahora asumimos que no hay amigos
-        
-        return isUpcoming && (isPublic || isOwner || (e.visibility == 'friends' && isFriend));
-      }).toList();
+
+      final visibleEvents =
+          events.where((e) {
+            // Combinar fecha y hora del evento para comparación completa
+            final eventDateTime = DateTime(
+              e.date.year,
+              e.date.month,
+              e.date.day,
+              e.time.hour,
+              e.time.minute,
+            );
+            final isUpcoming =
+                eventDateTime.isAfter(now) ||
+                eventDateTime.isAtSameMomentAs(now);
+            final isPublic = e.visibility == 'public';
+            final isOwner = e.userId == currentUserId;
+
+            final isFriend = false; // Por ahora asumimos que no hay amigos
+
+            return isUpcoming &&
+                (isPublic ||
+                    isOwner ||
+                    (e.visibility == 'friends' && isFriend));
+          }).toList();
 
       // Ordenar eventos
       visibleEvents.sort((a, b) {
@@ -106,10 +121,12 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _events = visibleEvents;
         _eventTypes = ['Todos', ...types];
-        
+
         // Si hay un evento destacado, mover a su posición
         if (_highlightedEventId != null) {
-          final index = visibleEvents.indexWhere((e) => e.id == _highlightedEventId);
+          final index = visibleEvents.indexWhere(
+            (e) => e.id == _highlightedEventId,
+          );
           if (index != -1) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _pageController.animateToPage(
@@ -123,9 +140,9 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar eventos: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al cargar eventos: $e')));
       }
     } finally {
       setState(() {
@@ -231,33 +248,33 @@ class _HomePageState extends State<HomePage> {
                         itemCount: _filteredEvents.length,
                         itemBuilder: (context, index) {
                           final event = _filteredEvents[index];
-                          final bool isHighlighted = event.id == _highlightedEventId;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: EdgeInsets.symmetric(
+                          final bool isHighlighted =
+                              event.id == _highlightedEventId;
+
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
                               vertical: 16,
                               horizontal: 8,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isHighlighted
-                                      ? Colors.green.withOpacity(0.5)
-                                      : Colors.black.withOpacity(0.2),
-                                  spreadRadius: isHighlighted ? 4 : 2,
-                                  blurRadius: isHighlighted ? 8 : 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 16,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        isHighlighted
+                                            ? Colors.green.withOpacity(0.5)
+                                            : Colors.black.withOpacity(0.2),
+                                    spreadRadius: isHighlighted ? 4 : 2,
+                                    blurRadius: isHighlighted ? 8 : 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // --- imagen ---
                                   ClipRRect(
@@ -267,14 +284,18 @@ class _HomePageState extends State<HomePage> {
                                     child: Stack(
                                       children: [
                                         Image.asset(
-                                          _placeImages[_locationNameMap[event.location.trim()] ?? ''] ??
+                                          _placeImages[_locationNameMap[event
+                                                      .location
+                                                      .trim()] ??
+                                                  ''] ??
                                               'assets/images/lugares/default.jpg',
                                           width: double.infinity,
-                                          height: 350,
+                                          height:
+                                              200, // Altura fija más pequeña
                                           fit: BoxFit.cover,
                                         ),
                                         Container(
-                                          height: 350,
+                                          height: 200,
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
                                               colors: [
@@ -300,9 +321,12 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                           ),
                                         ),
-                                        if (event.date.year == DateTime.now().year &&
-                                            event.date.month == DateTime.now().month &&
-                                            event.date.day == DateTime.now().day)
+                                        if (event.date.year ==
+                                                DateTime.now().year &&
+                                            event.date.month ==
+                                                DateTime.now().month &&
+                                            event.date.day ==
+                                                DateTime.now().day)
                                           Positioned(
                                             top: 12,
                                             right: 12,
@@ -318,15 +342,10 @@ class _HomePageState extends State<HomePage> {
                                                     BorderRadius.circular(20),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: Colors
-                                                        .green
-                                                        .shade700
+                                                    color: Colors.green.shade700
                                                         .withOpacity(0.5),
                                                     blurRadius: 8,
-                                                    offset: const Offset(
-                                                      0,
-                                                      3,
-                                                    ),
+                                                    offset: const Offset(0, 3),
                                                   ),
                                                 ],
                                               ),
@@ -347,7 +366,8 @@ class _HomePageState extends State<HomePage> {
                                   // --- contenido textual ---
                                   ListTile(
                                     onTap: () {
-                                      final defaultLocation = "7.119349,-73.122741";
+                                      final defaultLocation =
+                                          "7.119349,-73.122741";
                                       final safeLocation =
                                           (event.location.isNotEmpty)
                                               ? event.location
@@ -364,11 +384,10 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       );
                                     },
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 16,
-                                        ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 16,
+                                    ),
                                     title: Text(
                                       event.name,
                                       style: TextStyle(
@@ -399,16 +418,15 @@ class _HomePageState extends State<HomePage> {
                                           Icons.calendar_today,
                                           'Fecha',
                                           DateFormat(
-                                            'EEEE, d MMMM yyyy',
+                                            'EEEE, d MMMM yyyy – hh:mm a', // Incluye hora en formato 12h con AM/PM
                                             'es',
-                                          ).format(
-                                            event.date,
-                                          ),
+                                          ).format(event.date),
                                         ),
                                         _buildEventDetail(
                                           Icons.location_on,
                                           'Lugar',
-                                          _locationNameMap[event.location.trim()] ??
+                                          _locationNameMap[event.location
+                                                  .trim()] ??
                                               'Ubicación desconocida',
                                         ),
                                         _buildEventDetail(
@@ -463,8 +481,9 @@ class _HomePageState extends State<HomePage> {
                                             color: Colors.green.shade700,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 14,
@@ -529,7 +548,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildEventCard(Event event, double scale) {
     final isHighlighted = event.id == _highlightedEventId;
-    
+
     return Transform.scale(
       scale: scale,
       child: Card(
@@ -537,9 +556,10 @@ class _HomePageState extends State<HomePage> {
         margin: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.0),
-          side: isHighlighted
-              ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
-              : BorderSide.none,
+          side:
+              isHighlighted
+                  ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
+                  : BorderSide.none,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -561,14 +581,17 @@ class _HomePageState extends State<HomePage> {
                   Text('Tipo: ${event.type}'),
                   Text('Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}'),
                   Text('Hora: ${event.time.format(context)}'),
-                  Text('Ubicación: ${_locationNameMap[event.location] ?? event.location}'),
+                  Text(
+                    'Ubicación: ${_locationNameMap[event.location] ?? event.location}',
+                  ),
                   Text('Participantes: ${event.participants}'),
                   Text(
                     'Visibilidad: ${event.visibility == 'public' ? 'Público' : 'Solo Amigos'}',
                     style: TextStyle(
-                      color: event.visibility == 'public'
-                          ? Colors.green
-                          : Colors.blue,
+                      color:
+                          event.visibility == 'public'
+                              ? Colors.green
+                              : Colors.blue,
                     ),
                   ),
                 ],

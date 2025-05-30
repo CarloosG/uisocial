@@ -15,8 +15,7 @@ class EventosPage extends StatefulWidget {
 }
 
 class _EventosPageState extends State<EventosPage> {
-  final int _currentIndex =
-      2; // Índice para Eventos (cambiado de la pestaña "Publicar")
+  final int _currentIndex = 2;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final List<String> _eventTypes = [
@@ -65,6 +64,15 @@ class _EventosPageState extends State<EventosPage> {
   bool _isEditing = false;
   String? _editEventId;
 
+  // Colores del tema
+  static const Color primaryGreen = Color(0xFF2E7D32);
+  static const Color lightGreen = Color(0xFF4CAF50);
+  static const Color accentGreen = Color(0xFF81C784);
+  static const Color backgroundWhite = Color(0xFFFAFAFA);
+  static const Color cardWhite = Colors.white;
+  static const Color textGray = Color(0xFF424242);
+  static const Color lightGray = Color(0xFF9E9E9E);
+
   @override
   void initState() {
     super.initState();
@@ -88,14 +96,24 @@ class _EventosPageState extends State<EventosPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al cargar eventos: $e')));
+      _showSnackBar('Error al cargar eventos: $e', isError: true);
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade400 : lightGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   void _navigateToPage(int index) {
@@ -109,7 +127,6 @@ class _EventosPageState extends State<EventosPage> {
         Navigator.pushReplacementNamed(context, '/search');
         break;
       case 2:
-        // Ya estamos en la página de eventos
         break;
       case 3:
         Navigator.pushReplacementNamed(context, '/notifications');
@@ -126,6 +143,17 @@ class _EventosPageState extends State<EventosPage> {
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: primaryGreen,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -139,6 +167,17 @@ class _EventosPageState extends State<EventosPage> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: primaryGreen,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedTime) {
@@ -174,6 +213,13 @@ class _EventosPageState extends State<EventosPage> {
       _isEditing = true;
       _editEventId = event.id;
     });
+    
+    // Scroll to top to show the form
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
 
   Future<void> _saveEvent() async {
@@ -206,9 +252,7 @@ class _EventosPageState extends State<EventosPage> {
 
         if (_isEditing) {
           await _eventService.updateEvent(event);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Evento actualizado correctamente')),
-          );
+          _showSnackBar('Evento actualizado correctamente');
         } else {
           final createdEvent = await _eventService.createEvent(event);
           await _notificationService.createEventNotification(
@@ -222,16 +266,13 @@ class _EventosPageState extends State<EventosPage> {
             email ?? 'Usuario',
             createdEvent.visibility,
           );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Evento creado correctamente')),
-          );
+          _showSnackBar('Evento creado correctamente');
         }
 
         _clearForm();
         await _loadUserEvents();
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error al guardar evento: $e')));
+        _showSnackBar('Error al guardar evento: $e', isError: true);
       } finally {
         setState(() {
           _isLoading = false;
@@ -243,55 +284,137 @@ class _EventosPageState extends State<EventosPage> {
   Future<void> _deleteEvent(String id) async {
     try {
       await _eventService.deleteEvent(id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Evento eliminado correctamente')),
-      );
+      _showSnackBar('Evento eliminado correctamente');
       await _loadUserEvents();
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al eliminar evento: $e')));
+      _showSnackBar('Error al eliminar evento: $e', isError: true);
     }
+  }
+
+  Widget _buildEventTypeChip(String type) {
+    final colors = {
+      'Académico': Colors.blue.shade100,
+      'Cultural': Colors.purple.shade100,
+      'Deportivo': Colors.orange.shade100,
+      'Recreativo': Colors.pink.shade100,
+      'Voluntariado': accentGreen.withOpacity(0.2),
+      'Charla': Colors.indigo.shade100,
+      'Taller': Colors.teal.shade100,
+      'Feria': Colors.amber.shade100,
+      'Concierto': Colors.red.shade100,
+      'Proyección de Cine': Colors.deepPurple.shade100,
+      'Competencia': Colors.green.shade100,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors[type] ?? accentGreen.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        type,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: textGray,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: backgroundWhite,
       appBar: AppBar(
-        title: const Text('Eventos'),
+        title: const Text(
+          'Eventos',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: primaryGreen,
+        elevation: 0,
         actions: [
           if (_isEditing)
             IconButton(
-              icon: const Icon(Icons.cancel),
+              icon: const Icon(Icons.cancel_outlined, color: Colors.white),
               onPressed: _clearForm,
               tooltip: 'Cancelar edición',
             ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              elevation: 4,
+            // Form Card
+            Container(
+              decoration: BoxDecoration(
+                color: cardWhite,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _isEditing ? 'Editar Evento' : 'Crear Nuevo Evento',
-                        style: Theme.of(context).textTheme.titleLarge,
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: lightGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _isEditing ? Icons.edit : Icons.add_circle_outline,
+                              color: primaryGreen,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _isEditing ? 'Editar Evento' : 'Crear Nuevo Evento',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: textGray,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
+
+                      // Nombre del evento
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Nombre del evento',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: lightGray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: lightGray.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          prefixIcon: const Icon(Icons.event, color: primaryGreen),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -300,23 +423,32 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
+
+                      // Tipo de evento
                       DropdownButtonFormField<String>(
-                        value:
-                            _typeController.text.isNotEmpty
-                                ? _typeController.text
-                                : null,
-                        decoration: const InputDecoration(
+                        value: _typeController.text.isNotEmpty ? _typeController.text : null,
+                        decoration: InputDecoration(
                           labelText: 'Tipo de evento',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: lightGray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: lightGray.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          prefixIcon: const Icon(Icons.category, color: primaryGreen),
                         ),
-                        items:
-                            _eventTypes.map((String type) {
-                              return DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(type),
-                              );
-                            }).toList(),
+                        items: _eventTypes.map((String type) {
+                          return DropdownMenuItem<String>(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
                             _typeController.text = newValue!;
@@ -329,21 +461,32 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 16),
+                      // Lugar del evento
                       DropdownButtonFormField<String>(
                         value: _selectedCoords,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Lugar del evento',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: lightGray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: lightGray.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          prefixIcon: const Icon(Icons.location_on, color: primaryGreen),
                         ),
-                        items:
-                            _availableLocations.map((location) {
-                              return DropdownMenuItem<String>(
-                                value: location['coords'],
-                                child: Text(location['name']!),
-                              );
-                            }).toList(),
+                        items: _availableLocations.map((location) {
+                          return DropdownMenuItem<String>(
+                            value: location['coords'],
+                            child: Text(location['name']!),
+                          );
+                        }).toList(),
                         onChanged: (value) {
                           setState(() {
                             _selectedCoords = value;
@@ -356,36 +499,117 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 16),
+                      // Fecha y Hora
                       Row(
                         children: [
                           Expanded(
-                            child: TextButton(
-                              onPressed: () => _selectDate(context),
-                              child: Text(
-                                'Fecha: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: lightGray.withOpacity(0.3)),
+                              ),
+                              child: InkWell(
+                                onTap: () => _selectDate(context),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, color: primaryGreen, size: 20),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Fecha',
+                                            style: TextStyle(
+                                              color: lightGray,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            DateFormat('dd/MM/yyyy').format(_selectedDate),
+                                            style: const TextStyle(
+                                              color: textGray,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: TextButton(
-                              onPressed: () => _selectTime(context),
-                              child: Text(
-                                'Hora: ${_selectedTime.format(context)}',
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: lightGray.withOpacity(0.3)),
+                              ),
+                              child: InkWell(
+                                onTap: () => _selectTime(context),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.access_time, color: primaryGreen, size: 20),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Hora',
+                                            style: TextStyle(
+                                              color: lightGray,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _selectedTime.format(context),
+                                            style: const TextStyle(
+                                              color: textGray,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 16),
+                      // Visibilidad
                       DropdownButtonFormField<String>(
                         value: _selectedVisibility,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Visibilidad',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: lightGray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: lightGray.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          prefixIcon: const Icon(Icons.visibility, color: primaryGreen),
                         ),
                         items: const [
                           DropdownMenuItem(
@@ -403,13 +627,25 @@ class _EventosPageState extends State<EventosPage> {
                           });
                         },
                       ),
+                      const SizedBox(height: 20),
 
-                      const SizedBox(height: 16),
+                      // Número de participantes
                       TextFormField(
                         controller: _participantsController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Número de participantes',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: lightGray),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: lightGray.withOpacity(0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: primaryGreen, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          prefixIcon: const Icon(Icons.people, color: primaryGreen),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
@@ -422,28 +658,38 @@ class _EventosPageState extends State<EventosPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
+
+                      // Botón de guardar
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _saveEvent,
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
                           ),
-                          child:
-                              _isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : Text(
-                                    _isEditing
-                                        ? 'Actualizar Evento'
-                                        : 'Crear Evento',
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
+                                )
+                              : Text(
+                                  _isEditing ? 'Actualizar Evento' : 'Crear Evento',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -451,79 +697,223 @@ class _EventosPageState extends State<EventosPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
-            Text('Mis Eventos', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 40),
+
+            // Mis Eventos Section
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: lightGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.event_note,
+                    color: primaryGreen,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Mis Eventos',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: textGray,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Lista de eventos
             _isLoading && _userEvents.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(lightGreen),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Cargando eventos...',
+                          style: TextStyle(color: lightGray),
+                        ),
+                      ],
+                    ),
+                  )
                 : _userEvents.isEmpty
-                ? const Center(child: Text('No tienes eventos creados'))
-                : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _userEvents.length,
-                  itemBuilder: (context, index) {
-                    final event = _userEvents[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        title: Text(event.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text('Tipo: ${event.type}'),
-                            Text(
-                              'Fecha: ${DateFormat('dd/MM/yyyy').format(event.date)}',
+                    ? Container(
+                        padding: const EdgeInsets.all(40),
+                        decoration: BoxDecoration(
+                          color: cardWhite,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            Text('Hora: ${event.time.format(context)}'),
-                            Text('Lugar: ${_locationNameMap[event.location.trim()] ?? 'Ubicación desconocida'}'),
-                            Text('Participantes: ${event.participants}'),
-                            Text('Visibilidad: ${event.visibility == 'public' ? 'Público' : 'Solo Amigos'}'),
                           ],
                         ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: Column(
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _editEvent(event),
+                            Icon(
+                              Icons.event_busy,
+                              size: 64,
+                              color: lightGray,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed:
-                                  () => showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          title: const Text('Eliminar evento'),
-                                          content: const Text(
-                                            '¿Estás seguro de que quieres eliminar este evento?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(context),
-                                              child: const Text('Cancelar'),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No tienes eventos creados',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: lightGray,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Crea tu primer evento usando el formulario de arriba',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: lightGray,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _userEvents.length,
+                        itemBuilder: (context, index) {
+                          final event = _userEvents[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: cardWhite,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header del evento
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              event.name,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w600,
+                                                color: textGray,
+                                              ),
                                             ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                _deleteEvent(event.id!);
-                                              },
-                                              child: const Text('Eliminar'),
-                                            ),
+                                            const SizedBox(height: 8),
+                                            _buildEventTypeChip(event.type),
                                           ],
                                         ),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: lightGreen.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(Icons.edit_outlined, size: 20),
+                                              color: primaryGreen,
+                                              onPressed: () => _editEvent(event),
+                                              tooltip: 'Editar evento',
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.shade50,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: IconButton(
+                                              icon: const Icon(Icons.delete_outline, size: 20),
+                                              color: Colors.red.shade600,
+                                              onPressed: () => _showDeleteDialog(event),
+                                              tooltip: 'Eliminar evento',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
+                                  
+                                  const SizedBox(height: 16),
+
+                                  // Detalles del evento
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        _buildEventDetailRow(
+                                          Icons.calendar_today,
+                                          'Fecha',
+                                          DateFormat('dd/MM/yyyy').format(event.date),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _buildEventDetailRow(
+                                          Icons.access_time,
+                                          'Hora',
+                                          event.time.format(context),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _buildEventDetailRow(
+                                          Icons.location_on,
+                                          'Lugar',
+                                          _locationNameMap[event.location.trim()] ?? 'Ubicación desconocida',
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _buildEventDetailRow(
+                                          Icons.people,
+                                          'Participantes',
+                                          '${event.participants}',
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _buildEventDetailRow(
+                                          Icons.visibility,
+                                          'Visibilidad',
+                                          event.visibility == 'public' ? 'Público' : 'Solo Amigos',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
           ],
         ),
       ),
@@ -534,11 +924,111 @@ class _EventosPageState extends State<EventosPage> {
     );
   }
 
+  Widget _buildEventDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: primaryGreen,
+          size: 18,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            color: lightGray,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: textGray,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showDeleteDialog(Event event) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red.shade600,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Eliminar evento',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar "${event.name}"? Esta acción no se puede deshacer.',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: lightGray,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteEvent(event.id!);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _typeController.dispose();
-    _selectedCoords = null;
     _participantsController.dispose();
     super.dispose();
   }

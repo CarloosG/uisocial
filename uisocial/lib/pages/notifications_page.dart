@@ -14,12 +14,20 @@ class NotificationsPage extends StatefulWidget {
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
+class _NotificationsPageState extends State<NotificationsPage> with TickerProviderStateMixin {
   final int _currentIndex = 3;
   late final NotificationService _notificationService;
   List<EventNotification> _notifications = [];
   bool _isLoading = false;
   Timer? _refreshTimer;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  // Paleta de colores
+  static const Color _primaryGreen = Color(0xFF2E7D32);
+  static const Color _lightGreen = Color(0xFF4CAF50);
+  static const Color _softGreen = Color(0xFF81C784);
+  static const Color _backgroundWhite = Color(0xFFFAFAFA);
 
   @override
   void initState() {
@@ -28,6 +36,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _notificationService = NotificationService(supabase);
     timeago.setLocaleMessages('es', timeago.EsMessages());
     timeago.setDefaultLocale('es');
+    
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    
     _loadNotifications();
     // Actualizar la vista cada minuto para mantener los tiempos relativos actualizados
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -40,6 +57,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -77,9 +95,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
       setState(() {
         _notifications = notifications;
       });
+      _animationController.forward();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar notificaciones: $e')),
+        SnackBar(
+          content: Text('Error al cargar notificaciones: $e'),
+          backgroundColor: Colors.red.shade400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       setState(() {
@@ -93,7 +117,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final unreadNotifications = _notifications.where((n) => !n.isRead).toList();
       if (unreadNotifications.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No hay notificaciones sin leer')),
+          SnackBar(
+            content: const Text('No hay notificaciones sin leer'),
+            backgroundColor: _softGreen,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         return;
       }
@@ -104,11 +133,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
       await _loadNotifications();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Todas las notificaciones han sido marcadas como leídas')),
+        SnackBar(
+          content: const Text('Todas las notificaciones han sido marcadas como leídas'),
+          backgroundColor: _lightGreen,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al marcar notificaciones como leídas: $e')),
+        SnackBar(
+          content: Text('Error al marcar notificaciones como leídas: $e'),
+          backgroundColor: Colors.red.shade400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -118,11 +157,21 @@ class _NotificationsPageState extends State<NotificationsPage> {
       await _notificationService.deleteNotification(id);
       await _loadNotifications();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notificación eliminada')),
+        SnackBar(
+          content: const Text('Notificación eliminada'),
+          backgroundColor: _lightGreen,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar notificación: $e')),
+        SnackBar(
+          content: Text('Error al eliminar notificación: $e'),
+          backgroundColor: Colors.red.shade400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -131,7 +180,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       if (_notifications.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No hay notificaciones para eliminar')),
+          SnackBar(
+            content: const Text('No hay notificaciones para eliminar'),
+            backgroundColor: _softGreen,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         return;
       }
@@ -140,15 +194,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Eliminar todas las notificaciones'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.delete_sweep, color: Colors.red.shade600, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Eliminar todas las notificaciones')),
+            ],
+          ),
           content: const Text('¿Estás seguro de que quieres eliminar todas las notificaciones?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey[600],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: const Text('Cancelar'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade500,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
               child: const Text('Eliminar'),
             ),
           ],
@@ -161,12 +239,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }
         await _loadNotifications();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Todas las notificaciones han sido eliminadas')),
+          SnackBar(
+            content: const Text('Todas las notificaciones han sido eliminadas'),
+            backgroundColor: _lightGreen,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar notificaciones: $e')),
+        SnackBar(
+          content: Text('Error al eliminar notificaciones: $e'),
+          backgroundColor: Colors.red.shade400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -231,82 +319,300 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount = _notifications.where((n) => !n.isRead).length;
+    
     return Scaffold(
+      backgroundColor: _backgroundWhite,
       appBar: AppBar(
-        title: const Text('Notificaciones'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.notifications, color: _primaryGreen, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Notificaciones',
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+            ),
+            if (unreadCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _lightGreen,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.done_all),
-            tooltip: 'Marcar todas como leídas',
-            onPressed: _markAllAsRead,
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: _primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.done_all, color: _primaryGreen),
+              tooltip: 'Marcar todas como leídas',
+              onPressed: _markAllAsRead,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            tooltip: 'Eliminar todas',
-            onPressed: _deleteAllNotifications,
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.delete_sweep, color: Colors.red.shade600),
+              tooltip: 'Eliminar todas',
+              onPressed: _deleteAllNotifications,
+            ),
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(_primaryGreen),
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cargando notificaciones...',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _loadNotifications,
+              color: _primaryGreen,
+              backgroundColor: Colors.white,
               child: _notifications.isEmpty
-                  ? const Center(child: Text('No tienes notificaciones'))
-                  : ListView.builder(
-                      itemCount: _notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = _notifications[index];
-                        return Dismissible(
-                          key: Key(notification.id!),
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 16.0),
-                            child: const Icon(Icons.delete, color: Colors.white),
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: _softGreen.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.notifications_none,
+                              size: 64,
+                              color: _softGreen,
+                            ),
                           ),
-                          direction: DismissDirection.endToStart,
-                          onDismissed: (direction) {
-                            _deleteNotification(notification.id!);
-                          },
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: notification.isRead
-                                  ? Colors.grey
-                                  : Theme.of(context).primaryColor,
-                              child: Icon(
-                                _getNotificationIcon(notification.type),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'No tienes notificaciones',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Cuando recibas notificaciones aparecerán aquí',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _notifications.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final notification = _notifications[index];
+                          return Dismissible(
+                            key: Key(notification.id!),
+                            background: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade400,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.delete, color: Colors.white, size: 28),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Eliminar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (direction) {
+                              _deleteNotification(notification.id!);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
                                 color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              notification.title,
-                              style: TextStyle(
-                                fontWeight:
-                                    notification.isRead ? FontWeight.normal : FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(notification.message),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _getRelativeTime(notification.createdAt),
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: notification.isRead 
+                                      ? Colors.grey.withOpacity(0.1) 
+                                      : _lightGreen.withOpacity(0.3),
+                                  width: notification.isRead ? 1 : 2,
                                 ),
-                              ],
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: Stack(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: notification.isRead
+                                              ? [Colors.grey.shade300, Colors.grey.shade400]
+                                              : [_lightGreen, _primaryGreen],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        _getNotificationIcon(notification.type),
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    if (!notification.isRead)
+                                      Positioned(
+                                        top: -2,
+                                        right: -2,
+                                        child: Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            color: _lightGreen,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.white, width: 2),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                title: Text(
+                                  notification.title,
+                                  style: TextStyle(
+                                    fontWeight: notification.isRead 
+                                        ? FontWeight.w500 
+                                        : FontWeight.w700,
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      notification.message,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[700],
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.access_time,
+                                          size: 14,
+                                          color: Colors.grey[500],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _getRelativeTime(notification.createdAt),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[500],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                trailing: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                    onPressed: () => _showDeleteConfirmation(notification),
+                                    tooltip: 'Eliminar notificación',
+                                  ),
+                                ),
+                                onTap: () => _handleNotificationTap(notification),
+                              ),
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () => _showDeleteConfirmation(notification),
-                              tooltip: 'Eliminar notificación',
-                            ),
-                            onTap: () => _handleNotificationTap(notification),
-                            isThreeLine: true,
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
             ),
       bottomNavigationBar: CustomBottomNavigation(
@@ -333,15 +639,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar notificación'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.delete_outline, color: Colors.red.shade600, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Eliminar notificación')),
+          ],
+        ),
         content: const Text('¿Estás seguro de que quieres eliminar esta notificación?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade500,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -352,4 +682,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
       await _deleteNotification(notification.id!);
     }
   }
-} 
+}
