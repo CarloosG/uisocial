@@ -4,7 +4,6 @@ import 'package:uisocial/auth/auth_service.dart';
 import 'package:uisocial/pages/register_page.dart';
 import 'package:uisocial/pages/home_page.dart';
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -38,6 +37,7 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
+  // Método para iniciar sesión con email y contraseña
   void login() async {
     final email = _emailController.text;
     final password = _passwordController.text;
@@ -52,9 +52,32 @@ class _LoginPageState extends State<LoginPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"))
+        );
+      }
+    }
+  }
+
+  // Nuevo método para iniciar sesión con Figma
+  void loginWithFigma() async {
+    try {
+      final success = await authService.signInWithFigma();
+      if (success && mounted) {
+        Navigator.pushReplacement(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al iniciar sesión con Figma"))
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"))
+        );
       }
     }
   }
@@ -68,7 +91,7 @@ class _LoginPageState extends State<LoginPage>
         children: [
           Container(
             width: double.infinity,
-            color: Color.fromRGBO(122, 234, 170, 1),
+            color: const Color.fromRGBO(122, 234, 170, 1),
           ),
           Center(
             child: SingleChildScrollView(
@@ -109,7 +132,7 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Email",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                         ),
@@ -119,12 +142,14 @@ class _LoginPageState extends State<LoginPage>
                           decoration: const InputDecoration(
                             labelText: "Password",
                             border: OutlineInputBorder(),
-                            filled: true, // Habilita el color de fondo
+                            filled: true,
                             fillColor: Color.fromARGB(237, 255, 255, 255),
                           ),
                           obscureText: true,
                         ),
                         const SizedBox(height: 20),
+                        
+                        // Botón de inicio de sesión tradicional
                         ElevatedButton(
                           onPressed: login,
                           style: ElevatedButton.styleFrom(
@@ -142,29 +167,87 @@ class _LoginPageState extends State<LoginPage>
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
+                        
                         const SizedBox(height: 15),
-                        GestureDetector(
-                          onTap:
-                              () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterPage(),
+                        
+                        // Divisor "O"
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[600])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'O',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[600])),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        
+                        // Botón de Figma OAuth
+                        ElevatedButton.icon(
+                          onPressed: loginWithFigma,
+                          icon: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: const BoxDecoration(
+                              color: Colors.black,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'F',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          label: const Text(
+                            'Continuar con Figma',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 60,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 15),
+                        
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          ),
                           child: MouseRegion(
                             onEnter: (_) => setState(() => _isHovered = true),
                             onExit: (_) => setState(() => _isHovered = false),
                             child: AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 200),
                               style: TextStyle(
-                                color:
-                                    _isHovered
-                                        ? Colors.blueAccent
-                                        : Colors.blue, // Cambio de color
-                                fontWeight:
-                                    _isHovered
-                                        ? FontWeight.bold
-                                        : FontWeight.normal, // Cambio de grosor
+                                color: _isHovered
+                                    ? Colors.blueAccent
+                                    : Colors.blue,
+                                fontWeight: _isHovered
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                               child: const Text(
                                 "No tienes una cuenta? Regístrate",
@@ -179,7 +262,6 @@ class _LoginPageState extends State<LoginPage>
               ),
             ),
           ),
-
           Positioned(
             bottom: 0,
             left: 0,
@@ -195,7 +277,10 @@ class _LoginPageState extends State<LoginPage>
                       height: 150,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color.fromARGB(66, 255, 255, 255), Color.fromARGB(255, 255, 255, 255)],
+                          colors: [
+                            Color.fromARGB(66, 255, 255, 255),
+                            Color.fromARGB(255, 255, 255, 255)
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           stops: [0.3, 1.0],
@@ -226,8 +311,7 @@ class WaveClipper extends CustomClipper<Path> {
     path.moveTo(0, size.height * 0.4);
 
     for (double i = 0; i <= size.width; i += 1) {
-      double y =
-          size.height * 0.4 +
+      double y = size.height * 0.4 +
           amplitude * sin((i / waveLength) * 2 * pi + animationValue * 2 * pi);
       path.lineTo(i, y);
     }

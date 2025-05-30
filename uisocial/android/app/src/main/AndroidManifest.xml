@@ -1,0 +1,27 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.uisocial">
+    
+    <application
+        android:label="uisocial"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        
+        <!-- Agrega esta línea DENTRO de <application> -->
+        <meta-data
+            android:name="com.google.android.geo.AIzaSyBU6arJJKs-dN5k17HNrsGiKDt0HeeHD6Q"
+            android:value="AIzaSyBU6arJJKs-dN5k17HNrsGiKDt0HeeHD6Q" />
+            
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme">
+            <!-- resto del código existente -->
+        </activity>
+    </application>
+    
+    <!-- Permisos (agregar antes de </manifest>) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+</manifest>
